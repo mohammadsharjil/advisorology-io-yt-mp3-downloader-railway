@@ -211,22 +211,34 @@ def contact():
     email = (data.get("email") or "").strip()
     subject = (data.get("subject") or "General inquiry").strip()
     message = (data.get("message") or "").strip()
+
     if not email or not message:
         return jsonify({"error": "Email and message are required."}), 400
-    host=os.getenv("SMTP_HOST"); user=os.getenv("SMTP_USER"); pwd=os.getenv("SMTP_PASS"); port=int(os.getenv("SMTP_PORT","587"))
-    if not all([host,user,pwd]):
-        return jsonify({"error": "Contact form is not configured yet."}), 500
-    msg=EmailMessage()
-    msg["Subject"]=f"Advisorology contact: {subject}"
-    msg["From"]=user
-    msg["To"]='mohammads744@gmail.com'
-    msg.set_content(f"Name: {name}
-Email: {email}
 
-{message}")
-    with smtplib.SMTP(host,port) as s:
-        s.starttls(); s.login(user,pwd); s.send_message(msg)
-    return jsonify({"message":"Thanks — your message has been sent."})
+    host = os.getenv("SMTP_HOST")
+    user = os.getenv("SMTP_USER")
+    pwd = os.getenv("SMTP_PASS")
+    port = int(os.getenv("SMTP_PORT", "587"))
+
+    if not all([host, user, pwd]):
+        return jsonify({"error": "Contact form is not configured yet."}), 500
+
+    msg = EmailMessage()
+    msg["Subject"] = f"Advisorology contact: {subject}"
+    msg["From"] = user
+    msg["To"] = "mohammads744@gmail.com"
+    msg.set_content(
+        f"Name: {name}\n"
+        f"Email: {email}\n\n"
+        f"{message}"
+    )
+
+    with smtplib.SMTP(host, port) as s:
+        s.starttls()
+        s.login(user, pwd)
+        s.send_message(msg)
+
+    return jsonify({"message": "Thanks — your message has been sent."})
 
 
 if __name__ == "__main__":
