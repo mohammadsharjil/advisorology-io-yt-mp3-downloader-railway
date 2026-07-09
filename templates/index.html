@@ -43,7 +43,11 @@
   --r2: 20px;
   --wrap: min(1140px, 100% - 2.5rem);
 }
-
+[data-theme="light"]{
+  --bg:#f6f8fc;--surface:#fff;--surface2:#f4f7fb;--surface3:#edf2f9;
+  --border:rgba(16,24,40,.08);--border2:rgba(16,24,40,.14);--text:#101828;--muted:#667085;
+  --accent:#00bfa5;--accentDim:rgba(0,191,165,.10);--accentGlow:rgba(0,191,165,.18);--violet:#7c5cff;
+}
 /* ═══ RESET ═══════════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -538,6 +542,17 @@ body.light{--bg:#f6f8fc;--surface:#ffffff;--surface2:#f3f5fb;--surface3:#e8ecf7;
 /* ═══ FOCUS ═══════════════════════════════════════════════════════════════════ */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
+
+.theme-toggle{position:fixed;top:18px;right:18px;z-index:120;width:46px;height:46px;border-radius:999px;border:1px solid var(--border2);background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.theme-toggle .sun{display:none} html[data-theme="light"] .theme-toggle .sun{display:block} html[data-theme="light"] .theme-toggle .moon{display:none}
+.contact-wrap{max-width:980px;margin:0 auto}.contact-card{display:grid;grid-template-columns:1.05fr 1.35fr;gap:28px;background:var(--surface);border:1px solid var(--border2);border-radius:24px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.18)}
+.contact-side{padding:34px;background:var(--surface2);border-right:1px solid var(--border)} .contact-form-wrap{padding:34px}
+.contact-kicker{font-family:var(--fm);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.contact-title{font-family:var(--fh);font-size:2rem;line-height:1.08;font-weight:800;margin-bottom:14px}.contact-copy{color:var(--muted);line-height:1.8;margin-bottom:24px}
+.contact-points{display:grid;gap:12px}.contact-point{display:flex;gap:12px;padding:12px 14px;border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:14px}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:8px}.field label{font-size:13px;font-weight:600}.field input,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:14px;padding:14px 16px;font:inherit}.field textarea{min-height:150px}
+.contact-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.contact-note{font-size:13px;color:var(--muted);line-height:1.6}.contact-status{display:none;padding:12px 14px;border-radius:12px;font-size:14px}.contact-status.show{display:block}.contact-status.ok{background:var(--greenDim);color:var(--green)}.contact-status.err{background:var(--redDim);color:var(--red)}
+@media(max-width:900px){.contact-card{grid-template-columns:1fr}.contact-side{border-right:none;border-bottom:1px solid var(--border)}} @media(max-width:640px){.contact-grid{grid-template-columns:1fr}}
 /* ═══ RESPONSIVE ══════════════════════════════════════════════════════════════ */
 @media(max-width:900px) {
   .hero-inner  { grid-template-columns: 1fr; gap: 48px; }
@@ -1342,6 +1357,10 @@ document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key
 const themeToggle=document.getElementById("themeToggle");const savedTheme=localStorage.getItem("advisorology-theme");if(savedTheme==="light"){document.body.classList.add("light");themeToggle.textContent="🌙";}themeToggle?.addEventListener("click",()=>{document.body.classList.toggle("light");const light=document.body.classList.contains("light");themeToggle.textContent=light?"🌙":"☀️";localStorage.setItem("advisorology-theme",light?"light":"dark");});
 document.getElementById("contactForm")?.addEventListener("submit",async(e)=>{e.preventDefault();const payload={name:contactName.value.trim(),email:contactEmail.value.trim(),subject:contactSubject.value.trim(),message:contactMessage.value.trim()};const status=document.getElementById("contactStatus");status.textContent="Sending...";const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({}));status.textContent=r.ok?(data.message||'Message sent successfully.'):(data.error||'Unable to send message.');if(r.ok)e.target.reset();});
 
+
+(function(){const root=document.documentElement;const saved=localStorage.getItem('advisorology-theme');root.setAttribute('data-theme',saved==='light'?'light':'dark');document.getElementById('themeToggle')?.addEventListener('click',()=>{const next=root.getAttribute('data-theme')==='light'?'dark':'light';root.setAttribute('data-theme',next);localStorage.setItem('advisorology-theme',next);});})();
+const contactForm=document.getElementById('contactForm');
+if(contactForm){contactForm.addEventListener('submit',async(e)=>{e.preventDefault();const status=document.getElementById('contactStatus');const btn=document.getElementById('contactSubmit');status.className='contact-status show';status.textContent='Sending your message…';btn.disabled=true;try{const res=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('contactName').value.trim(),email:document.getElementById('contactEmail').value.trim(),subject:document.getElementById('contactSubject').value.trim(),message:document.getElementById('contactMessage').value.trim()})});const data=await res.json();if(!res.ok) throw new Error(data.error||'Failed to send message');status.className='contact-status show ok';status.textContent=data.message||'Your message has been sent.';contactForm.reset();}catch(err){status.className='contact-status show err';status.textContent=err.message||'Something went wrong while sending your message.';}finally{btn.disabled=false;}});}
 </script>
 </body>
 </html>

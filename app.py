@@ -11,6 +11,13 @@ import yt_dlp
 
 app = Flask(__name__)
 
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+CONTACT_TO_EMAIL = os.getenv("CONTACT_TO_EMAIL", "mohammads744@gmail.com")
+CONTACT_FROM_EMAIL = os.getenv("CONTACT_FROM_EMAIL", SMTP_USERNAME or CONTACT_TO_EMAIL)
+
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
