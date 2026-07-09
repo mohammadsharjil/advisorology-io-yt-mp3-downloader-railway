@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advisorology.IO — Turn Any Video Into Audio, In One Go</title>
+  <meta name="description" content="Paste a YouTube link, convert it, and download your MP3 in seconds. No sign-up, no technical steps — just clean audio from any video."/>
+  <meta property="og:title" content="Advisorology.IO — Turn Any Video Into Audio"/>
+  <meta property="og:description" content="Paste, convert, and download as much audio as you need — in one simple pass."/>
+  <meta property="og:type" content="website"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300e5c3'/><polygon points='11,8 25,16 11,24' fill='%23070710'/></svg>"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+/* ═══ TOKENS ══════════════════════════════════════════════════════════════════ */
+:root {
+  --bg:         #070710;
+  --surface:    #0e0e22;
+  --surface2:   #161630;
+  --surface3:   #1e1e3e;
+  --border:     rgba(150,140,255,0.1);
+  --border2:    rgba(150,140,255,0.22);
+  --text:       #f0f0fc;
+  --muted:      #7878a8;
+  --accent:     #00e5c3;
+  --accentDim:  rgba(0,229,195,0.1);
+  --accentGlow: rgba(0,229,195,0.22);
+  --violet:     #9b72ff;
+  --amber:      #f5c542;
+  --amberDim:   rgba(245,197,66,0.1);
+  --green:      #4ade80;
+  --greenDim:   rgba(74,222,128,0.1);
+  --red:        #f87171;
+  --redDim:     rgba(248,113,113,0.1);
+  --blue:       #60a5fa;
+  --blueDim:    rgba(96,165,250,0.1);
+  --fh: 'Space Grotesk', sans-serif;
+  --fb: 'Inter', sans-serif;
+  --fm: 'JetBrains Mono', monospace;
+  --r:  12px;
+  --r2: 20px;
+  --wrap: min(1140px, 100% - 2.5rem);
+}
+
+/* ═══ RESET ═══════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--fb);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--fb); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ═══ GRID ATMOSPHERE ═════════════════════════════════════════════════════════ */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(rgba(0,229,195,0.022) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,229,195,0.022) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* ═══ UTILITY ═════════════════════════════════════════════════════════════════ */
+.wrap { width: var(--wrap); margin: 0 auto; }
+
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 50px; padding: 0 26px;
+  background: var(--accent); color: #030d0b;
+  font-family: var(--fh); font-size: 15px; font-weight: 700;
+  border-radius: var(--r); border: none; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+  text-decoration: none; letter-spacing: -0.01em;
+  box-shadow: 0 0 28px var(--accentGlow);
+}
+.cta-btn:hover  { transform: translateY(-2px); box-shadow: 0 4px 48px rgba(0,229,195,0.32); }
+.cta-btn:active { transform: translateY(0); }
+
+.cta-outline {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border2); box-shadow: none;
+}
+.cta-outline:hover { background: var(--surface2); box-shadow: none; transform: none; }
+
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.65s ease, transform 0.65s ease; }
+.reveal.in { opacity: 1; transform: translateY(0); }
+
+/* ═══ NAV ═════════════════════════════════════════════════════════════════════ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  transition: background 0.3s, backdrop-filter 0.3s, border-color 0.3s;
+}
+.nav.scrolled {
+  background: rgba(7,7,16,0.88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 70px; width: var(--wrap); margin: 0 auto;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--fh); font-size: 17px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--text); text-decoration: none;
+}
+.nav-logo-mark {
+  width: 36px; height: 36px; background: var(--accent); border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.nav-logo-mark svg { width: 18px; }
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-link { font-size: 14px; font-weight: 500; color: var(--muted); transition: color 0.15s; }
+.nav-link:hover { color: var(--text); }
+.nav-cta { display: none; height: 40px; font-size: 14px; padding: 0 18px; border-radius: 8px; }
+@media(min-width:640px) { .nav-cta { display: inline-flex; } }
+
+/* ═══ HERO ════════════════════════════════════════════════════════════════════ */
+.hero {
+  position: relative; z-index: 1;
+  padding: 150px 0 100px; overflow: hidden;
+}
+.hero-waveform {
+  position: absolute; top: 50%; left: -40px;
+  transform: translateY(-55%); pointer-events: none; z-index: 0; opacity: 0.055;
+}
+.hero-waveform svg { width: 700px; }
+.hero::after {
+  content: ''; position: absolute; top: 30%; left: 0; width: 50%; height: 60%;
+  background: radial-gradient(ellipse at 20% 50%, rgba(0,229,195,0.08) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+.hero-inner {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+}
+.hero-text { max-width: 560px; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accentDim); border: 1px solid rgba(0,229,195,0.18);
+  border-radius: 100px; padding: 6px 14px 6px 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 24px;
+}
+.hero-eyebrow-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accentDim); border: 1px solid rgba(0,229,195,0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-eyebrow-dot span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.hero-h1 {
+  font-family: var(--fh); font-size: clamp(2.8rem, 5.5vw, 4.2rem);
+  font-weight: 800; line-height: 1.06; letter-spacing: -0.035em; margin-bottom: 22px;
+}
+.hero-h1 .hl {
+  color: var(--accent); display: inline-block; position: relative;
+}
+.hero-h1 .hl::after {
+  content: ''; position: absolute; bottom: 2px; left: 0; right: 0;
+  height: 3px; background: var(--accent); border-radius: 2px; opacity: 0.35;
+}
+.hero-sub {
+  font-size: clamp(1rem, 1.6vw, 1.1rem); color: var(--muted);
+  line-height: 1.75; margin-bottom: 36px; max-width: 460px;
+}
+.hero-cta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* ═══ CAROUSEL ════════════════════════════════════════════════════════════════ */
+.car-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--r2); overflow: hidden; position: relative;
+}
+.car-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--violet), transparent);
+  opacity: 0.5;
+}
+.car-viewport { overflow: hidden; }
+.car-track { display: flex; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
+.car-slide { min-width: 100%; padding: 32px 28px 28px; display: flex; flex-direction: column; gap: 18px; }
+
+.slide-step { font-family: var(--fm); font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 0.1em; }
+.slide-title { font-family: var(--fh); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.slide-desc { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+.slide-illus {
+  background: var(--surface2); border-radius: var(--r); border: 1px solid var(--border);
+  padding: 22px; min-height: 160px; display: flex; align-items: center; justify-content: center;
+}
+
+/* Slide 1 */
+.illus-browser { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.illus-url-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface3); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 14px;
+}
+.illus-yt { width: 28px; height: 20px; background: #ff0000; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.illus-yt svg { width: 10px; }
+.illus-url { font-family: var(--fm); font-size: 12px; color: var(--muted); overflow: hidden; white-space: nowrap; flex: 1; }
+.illus-url em { color: var(--accent); font-style: normal; }
+.illus-paste { background: var(--accent); color: #030d0b; font-family: var(--fh); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; }
+.illus-phs { display: flex; gap: 8px; }
+.illus-ph { height: 8px; border-radius: 4px; background: var(--surface3); }
+
+/* Slide 2 */
+.illus-convert { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.illus-ring-wrap { position: relative; width: 80px; height: 80px; }
+.illus-ring-wrap svg { transform: rotate(-90deg); }
+.ring-bg  { fill: none; stroke: var(--surface3); stroke-width: 6; }
+.ring-arc { fill: none; stroke: url(#ring-grad); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 226; stroke-dashoffset: 56; animation: ring-spin 2.2s linear infinite; }
+@keyframes ring-spin { to { stroke-dashoffset: calc(56 - 452); } }
+.ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; }
+.illus-eq { display: flex; align-items: center; gap: 4px; height: 36px; }
+.eq-bar { width: 5px; border-radius: 3px; background: linear-gradient(180deg, var(--accent), var(--violet)); animation: eq 1s ease-in-out infinite; }
+.eq-bar:nth-child(1){height:10px;animation-delay:.00s}
+.eq-bar:nth-child(2){height:24px;animation-delay:.09s}
+.eq-bar:nth-child(3){height:34px;animation-delay:.18s}
+.eq-bar:nth-child(4){height:20px;animation-delay:.27s}
+.eq-bar:nth-child(5){height:30px;animation-delay:.36s}
+.eq-bar:nth-child(6){height:16px;animation-delay:.45s}
+.eq-bar:nth-child(7){height:26px;animation-delay:.54s}
+.eq-bar:nth-child(8){height:12px;animation-delay:.63s}
+@keyframes eq { 0%,100%{transform:scaleY(1);opacity:.7} 50%{transform:scaleY(1.5);opacity:1} }
+
+/* Slide 3 */
+.illus-done { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.illus-ok-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(0,229,195,0.08); border: 1px solid rgba(0,229,195,0.22); border-radius: 100px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: var(--accent); }
+.illus-check { width: 18px; height: 18px; border-radius: 50%; background: var(--accentDim); border: 1.5px solid var(--accent); display: flex; align-items: center; justify-content: center; }
+.illus-file-row { display: flex; align-items: center; gap: 12px; background: var(--surface3); border: 1px solid rgba(0,229,195,0.2); border-radius: var(--r); padding: 12px 14px; }
+.illus-file-thumb { width: 40px; height: 48px; background: var(--surface); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--fm); font-size: 9px; font-weight: 700; color: var(--accent); }
+.illus-file-info { flex: 1; }
+.illus-file-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.illus-file-meta { font-size: 11px; color: var(--muted); }
+.illus-dl-btn { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+.car-dots { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 18px 28px 20px; border-top: 1px solid var(--border); }
+.car-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--surface3); border: 1px solid var(--border2); cursor: pointer; transition: background 0.2s, width 0.25s, border-radius 0.25s; appearance: none; }
+.car-dot.on { width: 24px; border-radius: 4px; background: var(--accent); border-color: transparent; }
+
+/* ═══ SECTION BASE ════════════════════════════════════════════════════════════ */
+.sect { position: relative; z-index: 1; padding: 96px 0; }
+.sect-surface { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.sect-label { font-family: var(--fm); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+.sect-h2 { font-family: var(--fh); font-size: clamp(1.9rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 18px; }
+.sect-sub { font-size: 1rem; color: var(--muted); line-height: 1.75; max-width: 540px; }
+
+/* ═══ CONVERTER SECTION ═══════════════════════════════════════════════════════ */
+#converter {
+  position: relative; z-index: 1;
+  padding: 80px 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.conv-head { text-align: center; margin-bottom: 40px; }
+
+.conv-card {
+  max-width: 720px; margin: 0 auto;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: var(--r2); overflow: hidden; position: relative;
+}
+.conv-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--violet), transparent);
+}
+
+/* Input row */
+.conv-input-wrap { padding: 24px 24px 0; }
+.conv-input-row { display: flex; gap: 10px; margin-bottom: 8px; }
+.conv-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-size: 14px; font-family: var(--fb);
+  padding: 0 14px; height: 44px; border-radius: var(--r); outline: none;
+  transition: border-color 0.15s;
+}
+.conv-input:focus { border-color: var(--accent); }
+.conv-input::placeholder { color: var(--muted); }
+.conv-add-btn {
+  height: 44px; padding: 0 18px; border-radius: var(--r);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-size: 14px; font-family: var(--fb);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s; white-space: nowrap;
+}
+.conv-add-btn:hover { background: var(--surface3); border-color: rgba(150,140,255,0.4); }
+.conv-hint { font-size: 12px; color: var(--muted); padding-bottom: 16px; }
+
+/* Queue */
+.conv-divider { height: 1px; background: var(--border); }
+#queue { display: flex; flex-direction: column; min-height: 60px; }
+
+/* Empty state */
+.conv-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+.conv-empty-icon { font-size: 30px; margin-bottom: 10px; opacity: 0.35; }
+
+/* Queue item */
+.cv-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 24px; border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.cv-item:last-child { border-bottom: none; }
+.cv-item:hover { background: rgba(150,140,255,0.03); }
+.cv-item.cv-done   { background: rgba(74,222,128,0.02); }
+.cv-item.cv-err    { background: rgba(248,113,113,0.02); }
+
+.cv-thumb { width: 54px; height: 38px; border-radius: 6px; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+.cv-info { flex: 1; min-width: 0; }
+.cv-title { font-size: 14px; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.cv-url   { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-errmsg { font-size: 11px; color: var(--red); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Status badges */
+.cv-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.02em; }
+.cv-badge-queued     { background: var(--surface2);  color: var(--muted);  border: 1px solid var(--border); }
+.cv-badge-installing { background: var(--amberDim);  color: var(--amber);  border: 1px solid rgba(245,197,66,0.25); animation: pulse 1.4s infinite; }
+.cv-badge-installed  { background: var(--greenDim);  color: var(--green);  border: 1px solid rgba(74,222,128,0.25); }
+.cv-badge-error      { background: var(--redDim);    color: var(--red);    border: 1px solid rgba(248,113,113,0.25); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* Per-item install button */
+.cv-install-btn {
+  height: 32px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid rgba(0,229,195,0.25); background: var(--accentDim);
+  color: var(--accent); font-size: 12px; font-weight: 600; font-family: var(--fb);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  flex-shrink: 0; white-space: nowrap; transition: background 0.15s;
+}
+.cv-install-btn:hover { background: rgba(0,229,195,0.18); }
+
+/* Remove button */
+.cv-remove-btn {
+  width: 30px; height: 30px; padding: 0; border-radius: 6px; border: none;
+  background: transparent; color: var(--muted); font-size: 18px;
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+.cv-remove-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* Action bar */
+.conv-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 16px 24px; border-top: 1px solid var(--border);
+}
+.cv-install-all-btn {
+  height: 40px; padding: 0 20px; border-radius: var(--r);
+  background: var(--accent); border: none; color: #030d0b;
+  font-size: 14px; font-weight: 700; font-family: var(--fh);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: transform 0.12s, box-shadow 0.2s;
+  box-shadow: 0 0 20px var(--accentGlow);
+}
+.cv-install-all-btn:hover  { transform: translateY(-1px); box-shadow: 0 4px 32px rgba(0,229,195,0.3); }
+.cv-install-all-btn:active { transform: none; }
+
+.cv-bulk-btn {
+  height: 40px; padding: 0 16px; border-radius: var(--r);
+  background: var(--blueDim); border: 1px solid rgba(96,165,250,0.28);
+  color: var(--blue); font-size: 14px; font-weight: 600; font-family: var(--fb);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s;
+}
+.cv-bulk-btn:hover:not(:disabled) { background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.44); }
+.cv-bulk-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.cv-sec-btn {
+  height: 40px; padding: 0 14px; border-radius: var(--r);
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; font-family: var(--fb);
+  cursor: pointer; display: inline-flex; align-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+.cv-sec-btn:hover { background: var(--surface2); color: var(--text); }
+
+.cv-tally { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.cv-tally-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+/* ═══ HOW IT WORKS ════════════════════════════════════════════════════════════ */
+.hiw-head { text-align: center; margin-bottom: 64px; }
+.hiw-head .sect-sub { margin: 0 auto; }
+.hiw-steps { display: grid; grid-template-columns: repeat(3,1fr); position: relative; }
+.hiw-steps::before {
+  content: ''; position: absolute; top: 44px; left: calc(16.666% + 30px); right: calc(16.666% + 30px);
+  height: 1px; background: linear-gradient(90deg, var(--accent), var(--violet)); opacity: 0.25;
+}
+.hiw-step { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 0 28px; text-align: center; }
+.hiw-icon { width: 88px; height: 88px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+.hiw-n { position: absolute; top: -2px; right: -2px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #030d0b; font-family: var(--fh); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.hiw-step-title { font-family: var(--fh); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; }
+.hiw-step-desc  { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* ═══ ABOUT ═══════════════════════════════════════════════════════════════════ */
+.about-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+.about-copy { font-size: 1.05rem; color: var(--muted); line-height: 1.85; margin-bottom: 28px; }
+.trust-cards { display: flex; flex-direction: column; gap: 10px; }
+.trust-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; }
+.trust-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accentDim); border: 1px solid rgba(0,229,195,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.trust-icon svg { width: 20px; height: 20px; }
+.trust-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+.trust-desc  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ═══ FAQ ══════════════════════════════════════════════════════════════════════ */
+.faq-head { text-align: center; margin-bottom: 48px; }
+.faq-head .sect-sub { margin: 0 auto; }
+.faq-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 1px; }
+.faq-item { overflow: hidden; }
+.faq-item:first-child { border-radius: var(--r) var(--r) 0 0; }
+.faq-item:last-child  { border-radius: 0 0 var(--r) var(--r); }
+.faq-trigger { width: 100%; text-align: left; background: var(--surface2); border: none; color: var(--text); font-family: var(--fb); font-size: 15px; font-weight: 500; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; transition: background 0.15s; }
+.faq-trigger:hover { background: var(--surface3); }
+.faq-icon { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border2); background: var(--surface); color: var(--accent); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; transition: transform 0.28s; }
+.faq-item.open .faq-icon { transform: rotate(45deg); }
+.faq-panel { background: var(--surface2); max-height: 0; overflow: hidden; transition: max-height 0.38s ease, padding 0.28s; font-size: 14px; color: var(--muted); line-height: 1.8; padding: 0 24px; }
+.faq-item.open .faq-panel { max-height: 400px; padding: 14px 24px 24px; }
+
+/* ═══ DISCLAIMER ══════════════════════════════════════════════════════════════ */
+.disclaimer { position: relative; z-index: 1; background: rgba(245,197,66,0.04); border-top: 1px solid rgba(245,197,66,0.14); border-bottom: 1px solid rgba(245,197,66,0.14); padding: 18px 0; }
+.disclaimer-inner { display: flex; align-items: flex-start; gap: 12px; }
+.disclaimer-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+.disclaimer-text { font-size: 13px; color: rgba(245,197,66,0.8); line-height: 1.7; }
+.disclaimer-text a { color: var(--amber); text-decoration: underline; }
+
+/* ═══ FOOTER ══════════════════════════════════════════════════════════════════ */
+.footer { position: relative; z-index: 1; padding: 52px 0 36px; border-top: 1px solid var(--border); }
+.footer-inner { display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
+.footer-logo { font-family: var(--fh); font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.footer-logo .dot { color: var(--accent); }
+.footer-nav { display: flex; gap: 28px; }
+.footer-nav-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--muted); transition: color 0.15s; }
+.footer-nav-btn:hover { color: var(--text); }
+.footer-copy { font-size: 13px; color: var(--muted); }
+.footer-copy a { color: var(--accent); text-decoration: underline; }
+
+/* ═══ MODAL BASE (shared by all three modals) ═════════════════════════════════ */
+.modal-bg {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.22s;
+}
+.modal-bg.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--r2); width: 100%; max-width: 520px;
+  max-height: 85vh; display: flex; flex-direction: column;
+  transform: translateY(16px); transition: transform 0.26s;
+}
+.modal-bg.open .modal-box { transform: translateY(0); }
+.modal-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.modal-hd-title { font-family: var(--fh); font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--muted); font-size: 20px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.modal-body { padding: 22px 24px; overflow-y: auto; font-size: 14px; color: var(--muted); line-height: 1.82; }
+.modal-body h4 { font-family: var(--fh); color: var(--text); font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin: 20px 0 8px; }
+.modal-body h4:first-child { margin-top: 0; }
+.modal-body p { margin-bottom: 10px; }
+
+/* ═══ BULK DOWNLOAD MODAL (reuses .modal-bg/.modal-box) ══════════════════════ */
+#modal-overlay { /* override old display:none approach */ }
+
+.bulk-opt {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 18px; margin-bottom: 10px;
+}
+.bulk-opt h3 { font-family: var(--fh); font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
+.bulk-opt p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.bulk-opt-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+
+.bulk-select {
+  height: 38px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--text); font-size: 13px; font-family: var(--fb);
+  cursor: pointer; outline: none;
+}
+.bulk-select:focus { border-color: var(--accent); }
+
+.bulk-action-btn {
+  height: 38px; padding: 0 16px; border-radius: 8px;
+  background: var(--accent); border: none; color: #030d0b;
+  font-size: 13px; font-weight: 700; font-family: var(--fh);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: opacity 0.15s;
+}
+.bulk-action-btn:hover:not(:disabled)  { opacity: 0.88; }
+.bulk-action-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+.rar-note { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.55; }
+
+/* Feedback strips */
+.m-strip { display: none; padding: 9px 13px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin-top: 10px; }
+.m-strip.vis { display: flex; align-items: flex-start; gap: 8px; }
+.m-progress { background: var(--amberDim); color: var(--amber); border: 1px solid rgba(245,197,66,0.22); }
+.m-error    { background: var(--redDim);   color: var(--red);   border: 1px solid rgba(248,113,113,0.22); }
+.m-success  { background: var(--greenDim); color: var(--green); border: 1px solid rgba(74,222,128,0.22); }
+
+/* Spinner */
+.spinner { display: inline-block; flex-shrink: 0; width: 13px; height: 13px; margin-top: 1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══ STICKY CTA ══════════════════════════════════════════════════════════════ */
+.sticky-bar {
+  position: fixed; bottom: 24px; left: 50%; z-index: 80;
+  transform: translateX(-50%) translateY(20px);
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(7,7,16,0.92);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border2); border-radius: 100px;
+  padding: 10px 10px 10px 22px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.sticky-bar.show { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+.sticky-bar-label { font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.sticky-bar .cta-btn { height: 42px; font-size: 14px; padding: 0 20px; border-radius: 100px; }
+
+/* ═══ FOCUS ═══════════════════════════════════════════════════════════════════ */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* ═══ RESPONSIVE ══════════════════════════════════════════════════════════════ */
+@media(max-width:900px) {
+  .hero-inner  { grid-template-columns: 1fr; gap: 48px; }
+  .hero-waveform { display: none; }
+  .hero-text   { max-width: 100%; text-align: center; }
+  .hero-eyebrow { margin: 0 auto 24px; }
+  .hero-sub    { margin: 0 auto 36px; }
+  .hero-cta-row { justify-content: center; }
+  .about-inner { grid-template-columns: 1fr; gap: 48px; }
+  .hiw-steps   { grid-template-columns: 1fr; }
+  .hiw-steps::before { display: none; }
+  .hiw-step { flex-direction: row; align-items: flex-start; text-align: left; padding: 24px 0; border-bottom: 1px solid var(--border); }
+  .hiw-step:last-child { border-bottom: none; }
+  .hiw-step-desc { text-align: left; }
+}
+@media(max-width:640px) {
+  .nav-link  { display: none; }
+  .hero      { padding: 110px 0 70px; }
+  .sect      { padding: 64px 0; }
+  #converter { padding: 56px 0; }
+  .sticky-bar-label { display: none; }
+  .hero-cta-row .cta-outline { display: none; }
+  .conv-actions { flex-wrap: wrap; }
+}
+  </style>
+</head>
+<body>
+
+<!-- ─── SVG DEFS ─── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#00e5c3"/>
+      <stop offset="100%" stop-color="#9b72ff"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ══════════════════════════ NAV ═══════════════════════════════════════════ -->
+<nav class="nav" id="mainNav" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo" aria-label="Advisorology.IO — back to top">
+      <div class="nav-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <polygon points="5,4 15,12 5,20" fill="#030d0b"/>
+          <path d="M16,8 Q19,10 19,12 Q19,14 16,16" stroke="#030d0b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      Advisorology<span style="color:var(--accent)">.IO</span>
+    </a>
+    <div class="nav-links">
+      <a href="#converter"    class="nav-link">Converter</a>
+      <a href="#how-it-works" class="nav-link">How It Works</a>
+      <a href="#about"        class="nav-link">About</a>
+      <a href="#faq"          class="nav-link">FAQ</a>
+      <a href="#converter" class="cta-btn nav-cta">Start Converting</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════ HERO ══════════════════════════════════════════ -->
+<section class="hero" aria-labelledby="hero-heading">
+
+  <div class="hero-waveform" aria-hidden="true">
+    <svg viewBox="0 0 700 300" fill="none">
+      <path d="M0,150 Q17,150 17,150 Q23,150 23,90 Q23,30 30,30 Q37,30 37,90 Q37,150 44,150 Q51,150 51,40 Q51,10 58,10 Q65,10 65,40 Q65,150 72,150 Q79,150 79,70 Q79,5 86,5 Q93,5 93,70 Q93,150 100,150 Q107,150 107,80 Q107,15 114,15 Q121,15 121,80 Q121,150 128,150 Q135,150 135,55 Q135,25 142,25 Q149,25 149,55 Q149,150 156,150 Q163,150 163,100 Q163,35 170,35 Q177,35 177,100 Q177,150 184,150 Q191,150 191,60 Q191,5 198,5 Q205,5 205,60 Q205,150 212,150 Q219,150 219,75 Q219,10 226,10 Q233,10 233,75 Q233,150 240,150 Q247,150 247,90 Q247,40 254,40 Q261,40 261,90 Q261,150 268,150 Q275,150 275,110 Q275,60 282,60 Q289,60 289,110 Q289,150 296,150 Q303,150 303,85 Q303,20 310,20 Q317,20 317,85 Q317,150 324,150 Q331,150 331,105 Q331,50 338,50 Q345,50 345,105 Q345,150 352,150 Q359,150 359,70 Q359,15 366,15 Q373,15 373,70 Q373,150 380,150 Q387,150 387,95 Q387,45 394,45 Q401,45 401,95 Q401,150 408,150 Q415,150 415,115 Q415,65 422,65 Q429,65 429,115 Q429,150 436,150 Q443,150 443,80 Q443,20 450,20 Q457,20 457,80 Q457,150 464,150 Q471,150 471,100 Q471,55 478,55 Q485,55 485,100 Q485,150 492,150 Q499,150 499,120 Q499,75 506,75 Q513,75 513,120 Q513,150 520,150 Q527,150 527,90 Q527,40 534,40 Q541,40 541,90 Q541,150 548,150 Q555,150 555,110 Q555,75 562,75 Q569,75 569,110 Q569,150 576,150 Q583,150 583,130 Q583,100 590,100 Q597,100 597,130 Q597,150 700,150" stroke="#00e5c3" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="wrap hero-inner">
+    <div class="hero-text">
+      <div class="hero-eyebrow">
+        <div class="hero-eyebrow-dot" aria-hidden="true"><span></span></div>
+        Free YouTube to MP3 Converter
+      </div>
+      <h1 class="hero-h1" id="hero-heading">Turn Any Video<br>Into <span class="hl">Audio</span> —<br>In One Go.</h1>
+      <p class="hero-sub">Paste, convert, and download as much audio as you need — in one simple pass. No sign-up, no clutter, no guesswork.</p>
+      <div class="hero-cta-row" id="heroCta">
+        <a href="#converter" class="cta-btn">
+          Start Converting
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </a>
+        <a href="#how-it-works" class="cta-btn cta-outline">See how it works</a>
+      </div>
+    </div>
+
+    <!-- Hero Carousel -->
+    <div class="car-card" role="region" aria-label="Product walkthrough" aria-roledescription="carousel">
+      <div class="car-viewport">
+        <div class="car-track" id="carTrack">
+
+          <div class="car-slide" role="group" aria-label="Step 1 of 3">
+            <p class="slide-step">STEP 01 / 03</p>
+            <p class="slide-title">Paste Your YouTube Link</p>
+            <div class="slide-illus">
+              <div class="illus-browser">
+                <div class="illus-url-bar">
+                  <div class="illus-yt" aria-hidden="true"><svg viewBox="0 0 10 8"><polygon points="2,0.5 9,4 2,7.5" fill="white"/></svg></div>
+                  <div class="illus-url"><em>https://</em>youtube.com/watch?v=dQw4w9…</div>
+                  <div class="illus-paste" aria-hidden="true">Paste ↵</div>
+                </div>
+                <div class="illus-phs">
+                  <div class="illus-ph" style="flex:1;opacity:.35"></div>
+                  <div class="illus-ph" style="flex:2;opacity:.2"></div>
+                  <div class="illus-ph" style="flex:0.8;opacity:.12"></div>
+                </div>
+              </div>
+            </div>
+            <p class="slide-desc">Copy any YouTube URL and drop it into the converter — that's all you need to start.</p>
+          </div>
+
+          <div class="car-slide" role="group" aria-label="Step 2 of 3">
+            <p class="slide-step">STEP 02 / 03</p>
+            <p class="slide-title">Sit Back — We're Converting</p>
+            <div class="slide-illus">
+              <div class="illus-convert" aria-label="Conversion in progress">
+                <div class="illus-ring-wrap" aria-hidden="true">
+                  <svg width="80" height="80" viewBox="0 0 80 80">
+                    <circle class="ring-bg"  cx="40" cy="40" r="36"/>
+                    <circle class="ring-arc" cx="40" cy="40" r="36"/>
+                  </svg>
+                  <div class="ring-label">▶ → ♪</div>
+                </div>
+                <div class="illus-eq" aria-hidden="true">
+                  <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                  <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                  <div class="eq-bar"></div><div class="eq-bar"></div>
+                </div>
+              </div>
+            </div>
+            <p class="slide-desc">Advisorology.IO extracts and processes the audio track — usually done in seconds.</p>
+          </div>
+
+          <div class="car-slide" role="group" aria-label="Step 3 of 3">
+            <p class="slide-step">STEP 03 / 03</p>
+            <p class="slide-title">Your MP3 Is Ready</p>
+            <div class="slide-illus">
+              <div class="illus-done">
+                <div style="display:flex">
+                  <span class="illus-ok-badge">
+                    <span class="illus-check" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" fill="none" stroke="#00e5c3" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                    Conversion complete
+                  </span>
+                </div>
+                <div class="illus-file-row">
+                  <div class="illus-file-thumb" aria-hidden="true">MP3</div>
+                  <div class="illus-file-info">
+                    <div class="illus-file-name">your-audio-track.mp3</div>
+                    <div class="illus-file-meta">192 kbps · Ready to download</div>
+                  </div>
+                  <div class="illus-dl-btn" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M4 8l4 4 4-4M2 13h12" stroke="#030d0b" stroke-width="1.9" stroke-linecap="round"/></svg></div>
+                </div>
+              </div>
+            </div>
+            <p class="slide-desc">Download instantly — preview it, keep it, share it. It's yours, no strings attached.</p>
+          </div>
+
+        </div>
+      </div>
+      <div class="car-dots" role="tablist" aria-label="Carousel slides">
+        <button class="car-dot on" role="tab" aria-selected="true"  aria-label="Slide 1" onclick="goSlide(0)"></button>
+        <button class="car-dot"    role="tab" aria-selected="false" aria-label="Slide 2" onclick="goSlide(1)"></button>
+        <button class="car-dot"    role="tab" aria-selected="false" aria-label="Slide 3" onclick="goSlide(2)"></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ CONVERTER ═════════════════════════════════════ -->
+<section id="converter" aria-labelledby="conv-heading">
+  <div class="wrap">
+    <div class="conv-head">
+      <p class="sect-label">The Tool</p>
+      <h2 class="sect-h2" id="conv-heading">Start Converting Now</h2>
+      <p class="sect-sub" style="margin:0 auto">Add your YouTube links below. Install tracks to cache the audio, then export them all at once.</p>
+    </div>
+
+    <div class="conv-card">
+
+      <!-- URL Input -->
+      <div class="conv-input-wrap">
+        <div class="conv-input-row">
+          <input class="conv-input" type="text" id="urlInput"
+                 placeholder="https://www.youtube.com/watch?v=…"
+                 aria-label="YouTube URL"/>
+          <button class="conv-add-btn" onclick="addUrl()">+ Add</button>
+        </div>
+        <p class="conv-hint">Press Enter or click Add · Paste multiple URLs separated by newlines</p>
+      </div>
+
+      <div class="conv-divider"></div>
+
+      <!-- Queue -->
+      <div id="queue" role="list" aria-label="Install queue">
+        <div class="conv-empty">
+          <div class="conv-empty-icon">♪</div>
+          No links yet — paste a YouTube URL above
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="conv-actions">
+        <button class="cv-install-all-btn" onclick="installAll()" aria-label="Install all pending tracks">▶ Install All</button>
+        <button id="bulkBtn" class="cv-bulk-btn" onclick="openModal()"
+                disabled aria-disabled="true"
+                title="Install at least one track first to enable bulk export">⬇ Bulk Download</button>
+        <button class="cv-sec-btn" onclick="clearInstalled()">✕ Clear done</button>
+        <button class="cv-sec-btn" onclick="clearAll()">Clear all</button>
+        <span class="cv-tally" id="tally" aria-live="polite"></span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ HOW IT WORKS ══════════════════════════════════ -->
+<section class="sect sect-surface" id="how-it-works" aria-labelledby="hiw-heading">
+  <div class="wrap">
+    <div class="hiw-head">
+      <p class="sect-label reveal">The Process</p>
+      <h2 class="sect-h2 reveal" id="hiw-heading">Simple as 1, 2, 3.</h2>
+      <p class="sect-sub reveal">No installs, no accounts, no settings to configure. Just your link and your download.</p>
+    </div>
+    <div class="hiw-steps">
+      <div class="hiw-step reveal">
+        <div class="hiw-icon" aria-hidden="true">
+          <div class="hiw-n">1</div>
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="4" y="8" width="28" height="20" rx="4" stroke="#00e5c3" stroke-width="1.6"/><path d="M4 13h28" stroke="#00e5c3" stroke-width="1.3" opacity=".4"/><circle cx="8" cy="10.5" r="1.2" fill="#00e5c3" opacity=".5"/><circle cx="12" cy="10.5" r="1.2" fill="#00e5c3" opacity=".5"/><path d="M10 18h16M10 22h10" stroke="#00e5c3" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg>
+        </div>
+        <div>
+          <p class="hiw-step-title">Paste the link</p>
+          <p class="hiw-step-desc">Copy the YouTube video URL and paste it into the converter box above.</p>
+        </div>
+      </div>
+      <div class="hiw-step reveal">
+        <div class="hiw-icon" aria-hidden="true">
+          <div class="hiw-n">2</div>
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#00e5c3" stroke-width="1.6"/><path d="M18 8 A10 10 0 0 1 28 18" stroke="#9b72ff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 18l4.5 4.5L24 13" stroke="#00e5c3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="hiw-step-title">Hit Install</p>
+          <p class="hiw-step-desc">Advisorology.IO processes the video and extracts the audio track — fast.</p>
+        </div>
+      </div>
+      <div class="hiw-step reveal">
+        <div class="hiw-icon" aria-hidden="true">
+          <div class="hiw-n">3</div>
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><path d="M18 5v18" stroke="#00e5c3" stroke-width="1.8" stroke-linecap="round"/><path d="M11 17l7 6 7-6" stroke="#00e5c3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 27h24" stroke="#00e5c3" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <p class="hiw-step-title">Download your MP3</p>
+          <p class="hiw-step-desc">Use Bulk Download to export all your tracks — individually or as a single archive.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ ABOUT ═════════════════════════════════════════ -->
+<section class="sect" id="about" aria-labelledby="about-heading">
+  <div class="wrap about-inner">
+    <div>
+      <p class="sect-label reveal">The Story</p>
+      <h2 class="sect-h2 reveal" id="about-heading">Built for people who just want the audio.</h2>
+      <p class="about-copy reveal">I built Advisorology.IO because I was tired of juggling several different tools just to save a video's audio for later. My goal is simple: give you one clean, no-fuss way to turn any YouTube video into an MP3 you can actually keep and use — no technical steps, no clutter, no guesswork.</p>
+      <p class="about-copy reveal">Every part of this tool is built around getting you from link to audio file as quickly and reliably as possible. That's it.</p>
+      <a href="#converter" class="cta-btn reveal" style="margin-top:4px">Try It Now →</a>
+    </div>
+    <div>
+      <div class="trust-cards">
+        <div class="trust-card reveal">
+          <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2C6 2 3 5 3 9c0 5 7 11 7 11s7-6 7-11c0-4-3-7-7-7z" stroke="#00e5c3" stroke-width="1.5"/><circle cx="10" cy="9" r="2.5" stroke="#00e5c3" stroke-width="1.5"/></svg></div>
+          <div><p class="trust-title">Free, Always</p><p class="trust-desc">No subscription, no hidden fees. Convert as many videos as you need.</p></div>
+        </div>
+        <div class="trust-card reveal">
+          <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="7" width="14" height="11" rx="2" stroke="#00e5c3" stroke-width="1.5"/><path d="M7 7V5a3 3 0 016 0v2" stroke="#00e5c3" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13" r="1.5" fill="#00e5c3"/></svg></div>
+          <div><p class="trust-title">Your Files Stay Private</p><p class="trust-desc">No account needed. Your links and audio are never stored or tracked.</p></div>
+        </div>
+        <div class="trust-card reveal">
+          <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2l2.2 5.6H18l-4.6 3.4 1.8 5.6L10 13.2 4.8 16.6l1.8-5.6L2 7.6h5.8z" stroke="#00e5c3" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><p class="trust-title">Bulk Conversion Ready</p><p class="trust-desc">Add multiple links and download them all — individually or as a single archive.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ FAQ ════════════════════════════════════════════ -->
+<section class="sect sect-surface" id="faq" aria-labelledby="faq-heading">
+  <div class="wrap">
+    <div class="faq-head">
+      <p class="sect-label reveal">Quick Answers</p>
+      <h2 class="sect-h2 reveal" id="faq-heading">Frequently Asked Questions</h2>
+      <p class="sect-sub reveal">Everything you'd want to know before hitting that button.</p>
+    </div>
+    <div class="faq-list reveal" role="list">
+      <div class="faq-item" role="listitem"><button class="faq-trigger" aria-expanded="false" onclick="toggleFaq(this)">Is Advisorology.IO free to use? <span class="faq-icon" aria-hidden="true">+</span></button><div class="faq-panel" role="region">Yes — completely free. No subscription, no account required, no hidden fees. Paste your link and go.</div></div>
+      <div class="faq-item" role="listitem"><button class="faq-trigger" aria-expanded="false" onclick="toggleFaq(this)">What video formats are supported? <span class="faq-icon" aria-hidden="true">+</span></button><div class="faq-panel" role="region">Currently Advisorology.IO converts YouTube videos to MP3 audio at 192 kbps — a solid balance of quality and file size for podcasts, music, lectures, and more.</div></div>
+      <div class="faq-item" role="listitem"><button class="faq-trigger" aria-expanded="false" onclick="toggleFaq(this)">Is there a file-size or video length limit? <span class="faq-icon" aria-hidden="true">+</span></button><div class="faq-panel" role="region">The tool handles most standard-length videos without issue. Very long recordings may take a little longer to process, but there's no hard cap on output file size.</div></div>
+      <div class="faq-item" role="listitem"><button class="faq-trigger" aria-expanded="false" onclick="toggleFaq(this)">How long does conversion take? <span class="faq-icon" aria-hidden="true">+</span></button><div class="faq-panel" role="region">Most conversions complete within a few seconds for typical video lengths. You'll see a live status update while it works — no staring at a blank screen.</div></div>
+      <div class="faq-item" role="listitem"><button class="faq-trigger" aria-expanded="false" onclick="toggleFaq(this)">Is my data safe? Does the site store my links? <span class="faq-icon" aria-hidden="true">+</span></button><div class="faq-panel" role="region">No data is stored. The URL you submit is used only to process your request. Once you download your MP3, the file is discarded from the server. No history, no tracking.</div></div>
+      <div class="faq-item" role="listitem"><button class="faq-trigger" aria-expanded="false" onclick="toggleFaq(this)">Can I convert multiple videos at once? <span class="faq-icon" aria-hidden="true">+</span></button><div class="faq-panel" role="region">Yes. Add as many YouTube links as you need in one session, then use Bulk Download to export everything — as separate MP3s or a single ZIP / TAR.GZ archive.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ DISCLAIMER ════════════════════════════════════ -->
+<div class="disclaimer" role="note" aria-label="Legal reminder">
+  <div class="wrap disclaimer-inner">
+    <span class="disclaimer-icon" aria-hidden="true">⚖️</span>
+    <p class="disclaimer-text">Advisorology.IO is intended for personal use with content you have the rights to convert. Please only convert videos you own or have explicit permission to use. Respect copyright law and YouTube's <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">Terms of Service</a>.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════ FOOTER ════════════════════════════════════════ -->
+<footer class="footer" aria-label="Site footer">
+  <div class="wrap footer-inner">
+    <p class="footer-logo">Advisorology<span class="dot">.IO</span></p>
+    <nav class="footer-nav" aria-label="Footer links">
+      <button class="footer-nav-btn" onclick="openLpModal('terms')"   aria-haspopup="dialog">Terms &amp; Conditions</button>
+      <button class="footer-nav-btn" onclick="openLpModal('privacy')" aria-haspopup="dialog">Privacy Policy</button>
+    </nav>
+    <p class="footer-copy">© 2026 All rights reserved &amp; Designed By <a href="https://www.linkedin.com/in/muhammad-sharjil-merchant-bscs-mspm" target="_blank" rel="noopener">Advisorology.io</a></p>
+  </div>
+</footer>
+
+<!-- ══════════════════════════ BULK DOWNLOAD MODAL ═══════════════════════════ -->
+<div id="modal-overlay" class="modal-bg"
+     role="dialog" aria-modal="true"
+     aria-labelledby="modal-heading" aria-describedby="modal-desc">
+  <div id="modal" class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-hd-title" id="modal-heading">Bulk Download</div>
+      <button id="modal-close" class="modal-close" onclick="closeModal()" aria-label="Close bulk download dialog">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="modal-desc" style="font-size:13px;color:var(--muted);margin-bottom:18px"></p>
+
+      <div class="bulk-opt">
+        <h3>Standard — individual files</h3>
+        <p>Each installed track downloads as a separate MP3. Files are staggered 700 ms apart to avoid browser throttling.</p>
+        <div class="bulk-opt-row">
+          <button class="bulk-action-btn" id="stdBtn" onclick="standardDownload()">⬇ Download files</button>
+        </div>
+      </div>
+
+      <div class="bulk-opt">
+        <h3>Archive — single file</h3>
+        <p>All installed tracks packed into one archive. Choose your format:</p>
+        <div class="bulk-opt-row">
+          <select class="bulk-select" id="archiveFmt" aria-label="Archive format">
+            <option value="zip">ZIP</option>
+            <option value="targz">TAR.GZ</option>
+          </select>
+          <button class="bulk-action-btn" id="archiveBtn" onclick="archiveDownload()">⬇ Download archive</button>
+        </div>
+        <p class="rar-note">ⓘ RAR is omitted — it is a proprietary format with no open-source server-side encoder. ZIP and TAR.GZ are fully supported.</p>
+      </div>
+
+      <div class="m-strip m-progress" id="mProgress" role="status" aria-live="polite"></div>
+      <div class="m-strip m-error"    id="mError"    role="alert"></div>
+      <div class="m-strip m-success"  id="mSuccess"  role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ TERMS MODAL ═══════════════════════════════════ -->
+<div class="modal-bg" id="lp-modal-terms" role="dialog" aria-modal="true" aria-labelledby="terms-title">
+  <div class="modal-box">
+    <div class="modal-hd"><h2 class="modal-hd-title" id="terms-title">Terms &amp; Conditions</h2><button class="modal-close" onclick="closeLpModal('terms')" aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <h4>1. Acceptance of Terms</h4><p>By using Advisorology.IO, you agree to these Terms and Conditions in full. If you disagree with any part, please do not use this service.</p>
+      <h4>2. Permitted Use</h4><p>Advisorology.IO is provided for personal, non-commercial use only. You may only convert videos for which you hold the appropriate rights or have explicit permission from the content owner.</p>
+      <h4>3. Copyright Compliance</h4><p>You are solely responsible for ensuring your use complies with applicable copyright laws and YouTube's Terms of Service. Advisorology.IO accepts no liability for misuse.</p>
+      <h4>4. No Warranty</h4><p>This service is provided "as is" without any warranties. We do not guarantee uninterrupted access, error-free operation, or continued availability of any feature.</p>
+      <h4>5. Limitation of Liability</h4><p>Advisorology.IO and its creator shall not be liable for any direct, indirect, or consequential damages arising from your use of the service.</p>
+      <h4>6. Modifications</h4><p>We reserve the right to modify or discontinue the service at any time. Continued use constitutes acceptance of the current terms.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ PRIVACY MODAL ═════════════════════════════════ -->
+<div class="modal-bg" id="lp-modal-privacy" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+  <div class="modal-box">
+    <div class="modal-hd"><h2 class="modal-hd-title" id="privacy-title">Privacy Policy</h2><button class="modal-close" onclick="closeLpModal('privacy')" aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <h4>What We Collect</h4><p>Advisorology.IO does not collect personal information. No registration is required, and we do not store your name, email, or any identifying details.</p>
+      <h4>Your URLs and Files</h4><p>URLs you submit are used only to process your request. Converted audio files are not retained after delivery — they are automatically cleared from the server once downloaded.</p>
+      <h4>Cookies</h4><p>We do not use tracking or advertising cookies. Any cookies present are strictly functional and required for the service to operate.</p>
+      <h4>Third-Party Services</h4><p>YouTube and other platforms you link to have their own privacy policies. We are not responsible for data handled by third-party services.</p>
+      <h4>Updates</h4><p>We may update this policy from time to time. Continued use of the service constitutes acceptance of the updated policy.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ STICKY CTA ════════════════════════════════════ -->
+<div class="sticky-bar" id="stickyBar" aria-label="Quick access" role="complementary">
+  <span class="sticky-bar-label">Ready to convert?</span>
+  <a href="#converter" class="cta-btn">Start Converting →</a>
+</div>
+
+<!-- ══════════════════════════ SCRIPTS ═══════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════════════════════
+   LANDING PAGE — Nav, Reveal, Carousel, FAQ, LP Modals, Sticky
+════════════════════════════════════════════════════════════════ */
+
+// Nav scroll
+const mainNav   = document.getElementById('mainNav');
+const stickyBar = document.getElementById('stickyBar');
+const heroCta   = document.getElementById('heroCta');
+window.addEventListener('scroll', () => {
+  mainNav.classList.toggle('scrolled', window.scrollY > 50);
+  stickyBar.classList.toggle('show', heroCta.getBoundingClientRect().bottom < 0);
+}, { passive: true });
+
+// Reveal on scroll
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const siblings = [...e.target.parentElement.querySelectorAll('.reveal:not(.in)')];
+    const idx = siblings.indexOf(e.target);
+    setTimeout(() => e.target.classList.add('in'), idx * 80);
+    revealObs.unobserve(e.target);
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+// Carousel
+let carSlide = 0;
+const carTrack = document.getElementById('carTrack');
+const carDots  = document.querySelectorAll('.car-dot');
+let carTimer;
+function goSlide(n, reset = true) {
+  carSlide = ((n % 3) + 3) % 3;
+  carTrack.style.transform = `translateX(-${carSlide * 100}%)`;
+  carDots.forEach((d, i) => {
+    d.classList.toggle('on', i === carSlide);
+    d.setAttribute('aria-selected', i === carSlide ? 'true' : 'false');
+  });
+  if (reset) { clearInterval(carTimer); startCar(); }
+}
+function startCar() { carTimer = setInterval(() => goSlide(carSlide + 1, false), 4500); }
+startCar();
+const carCard = document.querySelector('.car-card');
+carCard.addEventListener('mouseenter', () => clearInterval(carTimer));
+carCard.addEventListener('mouseleave', startCar);
+carDots.forEach((d, i) => {
+  d.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') goSlide(i + 1);
+    if (e.key === 'ArrowLeft')  goSlide(i - 1);
+  });
+});
+
+// FAQ accordion
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(el => {
+    el.classList.remove('open');
+    el.querySelector('.faq-trigger').setAttribute('aria-expanded', 'false');
+  });
+  if (!isOpen) { item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+}
+
+// Terms / Privacy modals
+let lpPrevFocus = null;
+function openLpModal(id) {
+  lpPrevFocus = document.activeElement;
+  const bg = document.getElementById(`lp-modal-${id}`);
+  bg.classList.add('open');
+  setTimeout(() => bg.querySelector('.modal-close').focus(), 60);
+  bg.addEventListener('keydown', lpTrap);
+}
+function closeLpModal(id) {
+  const bg = document.getElementById(`lp-modal-${id}`);
+  bg.classList.remove('open');
+  bg.removeEventListener('keydown', lpTrap);
+  if (lpPrevFocus) lpPrevFocus.focus();
+}
+function lpTrap(e) {
+  if (e.key === 'Escape') { closeLpModal(e.currentTarget.id.replace('lp-modal-','')); return; }
+  if (e.key !== 'Tab') return;
+  const els = [...e.currentTarget.querySelectorAll('button, a[href], [tabindex="0"]')].filter(x => !x.disabled);
+  const first = els[0], last = els[els.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  if (!e.shiftKey && document.activeElement === last)  { e.preventDefault(); first.focus(); }
+}
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => {
+    if (e.target !== bg) return;
+    const id = bg.id;
+    if (id === 'modal-overlay') { closeModal(); }
+    else { closeLpModal(id.replace('lp-modal-','')); }
+  });
+});
+
+// Smooth anchor scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const el = document.querySelector(a.getAttribute('href'));
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════
+   CONVERTER — State & Helpers
+════════════════════════════════════════════════════════════════ */
+const items = [];   // { url, jobId, status, title, error }
+let pollTimer  = null;
+let lastFocused = null;
+
+function getVideoId(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0];
+    return u.searchParams.get('v');
+  } catch { return null; }
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function installedItems() { return items.filter(i => i.status === 'done' && i.jobId); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ════════════════════════════════════════════════════════════════
+   URL Queue Management
+════════════════════════════════════════════════════════════════ */
+function addUrl() {
+  const input = document.getElementById('urlInput');
+  const raw = input.value.trim();
+  if (!raw) return;
+  raw.split(/[\n,]/).map(s => s.trim()).filter(Boolean).forEach(url => {
+    if (!url.startsWith('http')) return;
+    if (items.find(i => i.url === url)) return;
+    items.push({ url, jobId: null, status: 'pending', title: null, error: null });
+  });
+  input.value = '';
+  render();
+}
+function removeItem(idx) { items.splice(idx, 1); render(); }
+function clearInstalled() {
+  for (let i = items.length - 1; i >= 0; i--)
+    if (items[i].status === 'done' || items[i].status === 'error') items.splice(i, 1);
+  render();
+}
+function clearAll() { items.length = 0; render(); }
+
+/* ════════════════════════════════════════════════════════════════
+   Render
+════════════════════════════════════════════════════════════════ */
+function render() {
+  const q = document.getElementById('queue');
+  if (!items.length) {
+    q.innerHTML = `<div class="conv-empty"><div class="conv-empty-icon">♪</div>No links yet — paste a YouTube URL above</div>`;
+    syncBulkButton();
+    return;
+  }
+  q.innerHTML = items.map((item, idx) => {
+    const vid   = getVideoId(item.url);
+    const thumb = vid
+      ? `<img class="cv-thumb" src="https://i.ytimg.com/vi/${vid}/default.jpg" onerror="this.style.display='none'" alt="" loading="lazy">`
+      : '';
+    let cls = '';
+    let statusHtml = '';
+    switch (item.status) {
+      case 'pending':
+        statusHtml = `<button class="cv-install-btn" onclick="installOne(${idx})" aria-label="Install this track">⬇ Install</button>`;
+        break;
+      case 'downloading':
+        statusHtml = `<span class="cv-badge cv-badge-installing" aria-label="Installing">Installing…</span>`;
+        break;
+      case 'done':
+        cls = 'cv-done';
+        statusHtml = `<span class="cv-badge cv-badge-installed" aria-label="Installed">✓ Installed</span>`;
+        break;
+      case 'error':
+        cls = 'cv-err';
+        statusHtml = `<span class="cv-badge cv-badge-error" title="${esc(item.error||'')}" aria-label="Install failed">Failed</span>`;
+        break;
+    }
+    return `<div class="cv-item ${cls}" role="listitem">
+      ${thumb}
+      <div class="cv-info">
+        ${item.title ? `<div class="cv-title" title="${esc(item.title)}">${esc(item.title)}</div>` : ''}
+        <div class="cv-url">${esc(item.url)}</div>
+        ${item.status === 'error' && item.error ? `<div class="cv-errmsg">${esc(item.error.slice(0,90))}</div>` : ''}
+      </div>
+      ${statusHtml}
+      <button class="cv-remove-btn" onclick="removeItem(${idx})" aria-label="Remove from queue">×</button>
+    </div>`;
+  }).join('');
+  syncBulkButton();
+}
+
+function syncBulkButton() {
+  const count = installedItems().length;
+  const btn   = document.getElementById('bulkBtn');
+  const tally = document.getElementById('tally');
+  btn.disabled = count === 0;
+  btn.setAttribute('aria-disabled', count === 0 ? 'true' : 'false');
+  btn.title = count === 0 ? 'Install at least one track first to enable bulk export' : `Export ${count} installed track${count !== 1 ? 's' : ''}`;
+  if (count > 0) {
+    tally.innerHTML = `<span class="cv-tally-dot"></span>${count} track${count !== 1 ? 's' : ''} installed`;
+  } else {
+    tally.textContent = '';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Install — server-side fetch & cache
+════════════════════════════════════════════════════════════════ */
+async function installOne(idx) {
+  const item = items[idx];
+  if (!item || item.status !== 'pending') return;
+  item.status = 'downloading';
+  render();
+  try {
+    const res  = await fetch('/api/download', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls: [item.url] }),
+    });
+    const data = await res.json();
+    if (data.job_ids?.[0]) { item.jobId = data.job_ids[0]; startPolling(); }
+    else { item.status = 'error'; item.error = data.error || 'Server did not return a job ID'; render(); }
+  } catch {
+    item.status = 'error'; item.error = 'Could not reach server — is app.py running?'; render();
+  }
+}
+
+async function installAll() {
+  const pending = items.filter(i => i.status === 'pending');
+  if (!pending.length) { alert('No pending items. Add some YouTube links first.'); return; }
+  pending.forEach(item => { item.status = 'downloading'; });
+  render();
+  try {
+    const res  = await fetch('/api/download', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls: pending.map(i => i.url) }),
+    });
+    const data = await res.json();
+    (data.job_ids || []).forEach((jobId, i) => { if (pending[i]) pending[i].jobId = jobId; });
+    render();
+    startPolling();
+  } catch {
+    pending.forEach(item => { item.status = 'error'; item.error = 'Could not reach server — is app.py running?'; });
+    render();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Polling
+════════════════════════════════════════════════════════════════ */
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(async () => {
+    const active = items.filter(i => i.status === 'downloading' && i.jobId);
+    if (!active.length) { clearInterval(pollTimer); pollTimer = null; return; }
+    for (const item of active) {
+      try {
+        const res  = await fetch(`/api/status/${item.jobId}`);
+        const data = await res.json();
+        if (data.status === 'done')  { item.status = 'done';  item.title = data.title || item.title; }
+        else if (data.status === 'error') { item.status = 'error'; item.error = data.error || 'Install failed'; }
+      } catch { /* retry next tick */ }
+    }
+    render();
+  }, 2000);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Bulk Download Modal — open / close / focus trap
+════════════════════════════════════════════════════════════════ */
+function openModal() {
+  const installed = installedItems();
+  if (!installed.length) return;
+  document.getElementById('modal-desc').textContent =
+    `${installed.length} track${installed.length !== 1 ? 's' : ''} ready to export`;
+  clearFeedback();
+  setActionsDisabled(false);
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.add('open');
+  lastFocused = document.activeElement;
+  const first = focusableEls()[0];
+  if (first) first.focus();
+  overlay.addEventListener('keydown', trapFocus);
+  document.addEventListener('keydown', onEsc);
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.remove('open');
+  overlay.removeEventListener('keydown', trapFocus);
+  document.removeEventListener('keydown', onEsc);
+  if (lastFocused) lastFocused.focus();
+}
+
+function onEsc(e) { if (e.key === 'Escape') closeModal(); }
+
+function focusableEls() {
+  return Array.from(
+    document.getElementById('modal').querySelectorAll('button:not(:disabled), select, input, a[href], [tabindex]:not([tabindex="-1"])')
+  );
+}
+function trapFocus(e) {
+  if (e.key !== 'Tab') return;
+  const els = focusableEls();
+  const first = els[0], last = els[els.length - 1];
+  if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+  else            { if (document.activeElement === last)  { e.preventDefault(); first.focus(); } }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Modal Feedback Helpers
+════════════════════════════════════════════════════════════════ */
+function clearFeedback() {
+  ['mProgress','mError','mSuccess'].forEach(id => {
+    const el = document.getElementById(id); el.classList.remove('vis'); el.innerHTML = '';
+  });
+}
+function showProgress(msg) {
+  clearFeedback(); setActionsDisabled(true);
+  const el = document.getElementById('mProgress');
+  el.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${esc(msg)}</span>`;
+  el.classList.add('vis');
+}
+function showError(msg)   { clearFeedback(); setActionsDisabled(false); const el = document.getElementById('mError');   el.textContent = msg; el.classList.add('vis'); }
+function showSuccess(msg) { clearFeedback(); setActionsDisabled(false); const el = document.getElementById('mSuccess'); el.textContent = msg; el.classList.add('vis'); }
+function setActionsDisabled(dis) {
+  ['stdBtn','archiveBtn'].forEach(id => { document.getElementById(id).disabled = dis; });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Standard Download (staggered)
+════════════════════════════════════════════════════════════════ */
+async function standardDownload() {
+  const installed = installedItems();
+  if (!installed.length) return;
+  const total = installed.length;
+  for (let i = 0; i < total; i++) {
+    showProgress(`Downloading ${i + 1} of ${total}…`);
+    const a = document.createElement('a');
+    a.href = `/api/file/${installed[i].jobId}`; a.download = '';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    if (i < total - 1) await delay(700);
+  }
+  showSuccess(
+    `✓ ${total} download${total !== 1 ? 's' : ''} started — check your Downloads folder.` +
+    (total > 5 ? ' Your browser may prompt for permission to download multiple files.' : '')
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Archive Download (ZIP or TAR.GZ)
+════════════════════════════════════════════════════════════════ */
+async function archiveDownload() {
+  const installed = installedItems();
+  if (!installed.length) return;
+  const fmt    = document.getElementById('archiveFmt').value;
+  const ext    = fmt === 'targz' ? 'tar.gz' : 'zip';
+  const jobIds = installed.map(i => i.jobId);
+  showProgress(`Building ${ext.toUpperCase()} archive… this may take a moment.`);
+  let res;
+  try {
+    res = await fetch('/api/bulk', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_ids: jobIds, format: fmt }),
+    });
+  } catch { showError('Network error — could not reach the server. Make sure app.py is running.'); return; }
+  if (!res.ok) {
+    let msg = 'Archive creation failed.';
+    try { const e = await res.json(); msg = e.error || msg; } catch {}
+    showError(msg); return;
+  }
+  const failedCount = parseInt(res.headers.get('X-Failed-Tracks') || '0', 10);
+  const totalCount  = parseInt(res.headers.get('X-Total-Tracks')  || String(jobIds.length), 10);
+  let blob;
+  try { blob = await res.blob(); } catch { showError('Failed to read archive data from server.'); return; }
+  const cd       = res.headers.get('Content-Disposition') || '';
+  const fnMatch  = cd.match(/filename="?([^";\n]+)"?/);
+  const filename = fnMatch?.[1] || `installed-audio.${ext}`;
+  const blobUrl  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+  if (failedCount > 0) {
+    showSuccess(`✓ Archive downloaded (${totalCount - failedCount} of ${totalCount} tracks included). ${failedCount} track${failedCount !== 1 ? 's' : ''} could not be included — their files may have been cleared from the server.`);
+  } else {
+    showSuccess(`✓ ${ext.toUpperCase()} archive downloaded — ${totalCount} track${totalCount !== 1 ? 's' : ''} inside.`);
+  }
+}
+
+// Enter key on URL input
+document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') addUrl(); });
+</script>
+</body>
+</html>
