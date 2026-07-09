@@ -93,6 +93,9 @@ body::before {
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.65s ease, transform 0.65s ease; }
 .reveal.in { opacity: 1; transform: translateY(0); }
 
+.theme-toggle{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer}
+body.light{--bg:#f6f8fc;--surface:#ffffff;--surface2:#f3f5fb;--surface3:#e8ecf7;--border:rgba(15,23,42,.08);--border2:rgba(15,23,42,.14);--text:#111827;--muted:#5b6475;--accentDim:rgba(0,229,195,.12)}
+
 /* ═══ NAV ═════════════════════════════════════════════════════════════════════ */
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -586,6 +589,7 @@ body::before {
       Advisorology<span style="color:var(--accent)">.IO</span>
     </a>
     <div class="nav-links">
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark and light mode">☀️</button>
       <a href="#converter"    class="nav-link">Converter</a>
       <a href="#how-it-works" class="nav-link">How It Works</a>
       <a href="#about"        class="nav-link">About</a>
@@ -709,7 +713,7 @@ body::before {
     <div class="conv-head">
       <p class="sect-label">The Tool</p>
       <h2 class="sect-h2" id="conv-heading">Start Converting Now</h2>
-      <p class="sect-sub" style="margin:0 auto">Add your YouTube links below. Install tracks to cache the audio, then export them all at once.</p>
+      <p class="sect-sub" style="margin:0 auto">Add your YouTube links below. Add one or more YouTube links below, convert them to MP3, and download each file individually or as a ZIP archive.</p>
     </div>
 
     <div class="conv-card">
@@ -737,11 +741,11 @@ body::before {
 
       <!-- Actions -->
       <div class="conv-actions">
-        <button class="cv-install-all-btn" onclick="installAll()" aria-label="Install all pending tracks">▶ Install All</button>
+        <button class="cv-install-all-btn" onclick="installAll()" aria-label="Convert all pending tracks">▶ Convert All</button>
         <button id="bulkBtn" class="cv-bulk-btn" onclick="openModal()"
                 disabled aria-disabled="true"
-                title="Install at least one track first to enable bulk export">⬇ Bulk Download</button>
-        <button class="cv-sec-btn" onclick="clearInstalled()">✕ Clear done</button>
+                title="Convert at least one track first to enable bulk export">⬇ Bulk Download</button>
+        <button class="cv-sec-btn" onclick="clearReady()">✕ Clear done</button>
         <button class="cv-sec-btn" onclick="clearAll()">Clear all</button>
         <span class="cv-tally" id="tally" aria-live="polite"></span>
       </div>
@@ -775,7 +779,7 @@ body::before {
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13" stroke="#00e5c3" stroke-width="1.6"/><path d="M18 8 A10 10 0 0 1 28 18" stroke="#9b72ff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 18l4.5 4.5L24 13" stroke="#00e5c3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div>
-          <p class="hiw-step-title">Hit Install</p>
+          <p class="hiw-step-title">Click Convert</p>
           <p class="hiw-step-desc">Advisorology.IO processes the video and extracts the audio track — fast.</p>
         </div>
       </div>
@@ -850,6 +854,9 @@ body::before {
 </div>
 
 <!-- ══════════════════════════ FOOTER ════════════════════════════════════════ -->
+
+<section class="sect" id="contact"><div class="wrap"><div class="faq-head"><p class="sect-label">Support</p><h2 class="sect-h2">Need help or want to report an issue?</h2><p class="sect-sub">Send a message and we'll review your conversion issue, feature request, or business inquiry.</p></div><div class="conv-card" style="max-width:760px;margin:0 auto"><form id="contactForm" class="contact-form"><div class="conv-input-row" style="grid-template-columns:1fr 1fr"><input id="contactName" class="cv-input" placeholder="Your name (optional)"/><input id="contactEmail" class="cv-input" placeholder="Your email"/></div><div class="conv-input-row"><input id="contactSubject" class="cv-input" placeholder="Subject"/></div><div class="conv-input-row"><textarea id="contactMessage" class="cv-input" rows="5" placeholder="How can we help?"></textarea></div><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><p class="micro-note">Messages are sent to mohammads744@gmail.com.</p><button class="cta-btn" type="submit">Send message</button></div><p id="contactStatus" class="micro-note" style="margin-top:12px"></p></form></div></div></section>
+
 <footer class="footer" aria-label="Site footer">
   <div class="wrap footer-inner">
     <p class="footer-logo">Advisorology<span class="dot">.IO</span></p>
@@ -1077,7 +1084,7 @@ function addUrl() {
   render();
 }
 function removeItem(idx) { items.splice(idx, 1); render(); }
-function clearInstalled() {
+function clearReady() {
   for (let i = items.length - 1; i >= 0; i--)
     if (items[i].status === 'done' || items[i].status === 'error') items.splice(i, 1);
   render();
@@ -1103,18 +1110,18 @@ function render() {
     let statusHtml = '';
     switch (item.status) {
       case 'pending':
-        statusHtml = `<button class="cv-install-btn" onclick="installOne(${idx})" aria-label="Install this track">⬇ Install</button>`;
+        statusHtml = `<button class="cv-install-btn" onclick="installOne(${idx})" aria-label="Install this track">⬇ Convert</button>`;
         break;
       case 'downloading':
-        statusHtml = `<span class="cv-badge cv-badge-installing" aria-label="Installing">Installing…</span>`;
+        statusHtml = `<span class="cv-badge cv-badge-installing" aria-label="Installing">Converting…</span>`;
         break;
       case 'done':
         cls = 'cv-done';
-        statusHtml = `<span class="cv-badge cv-badge-installed" aria-label="Installed">✓ Installed</span>`;
+        statusHtml = `<span class="cv-badge cv-badge-installed" aria-label="Ready">✓ Ready</span>`;
         break;
       case 'error':
         cls = 'cv-err';
-        statusHtml = `<span class="cv-badge cv-badge-error" title="${esc(item.error||'')}" aria-label="Install failed">Failed</span>`;
+        statusHtml = `<span class="cv-badge cv-badge-error" title="${esc(item.error||'')}" aria-label="Conversion failed">Failed</span>`;
         break;
     }
     return `<div class="cv-item ${cls}" role="listitem">
@@ -1137,7 +1144,7 @@ function syncBulkButton() {
   const tally = document.getElementById('tally');
   btn.disabled = count === 0;
   btn.setAttribute('aria-disabled', count === 0 ? 'true' : 'false');
-  btn.title = count === 0 ? 'Install at least one track first to enable bulk export' : `Export ${count} installed track${count !== 1 ? 's' : ''}`;
+  btn.title = count === 0 ? 'Convert at least one track first to enable bulk export' : `Export ${count} installed track${count !== 1 ? 's' : ''}`;
   if (count > 0) {
     tally.innerHTML = `<span class="cv-tally-dot"></span>${count} track${count !== 1 ? 's' : ''} installed`;
   } else {
@@ -1146,7 +1153,7 @@ function syncBulkButton() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   Install — server-side fetch & cache
+   Convert — temporary server processing only
 ════════════════════════════════════════════════════════════════ */
 async function installOne(idx) {
   const item = items[idx];
@@ -1199,7 +1206,7 @@ function startPolling() {
         const res  = await fetch(`/api/status/${item.jobId}`);
         const data = await res.json();
         if (data.status === 'done')  { item.status = 'done';  item.title = data.title || item.title; }
-        else if (data.status === 'error') { item.status = 'error'; item.error = data.error || 'Install failed'; }
+        else if (data.status === 'error') { item.status = 'error'; item.error = data.error || 'Conversion failed'; }
       } catch { /* retry next tick */ }
     }
     render();
@@ -1331,6 +1338,10 @@ async function archiveDownload() {
 
 // Enter key on URL input
 document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') addUrl(); });
+
+const themeToggle=document.getElementById("themeToggle");const savedTheme=localStorage.getItem("advisorology-theme");if(savedTheme==="light"){document.body.classList.add("light");themeToggle.textContent="🌙";}themeToggle?.addEventListener("click",()=>{document.body.classList.toggle("light");const light=document.body.classList.contains("light");themeToggle.textContent=light?"🌙":"☀️";localStorage.setItem("advisorology-theme",light?"light":"dark");});
+document.getElementById("contactForm")?.addEventListener("submit",async(e)=>{e.preventDefault();const payload={name:contactName.value.trim(),email:contactEmail.value.trim(),subject:contactSubject.value.trim(),message:contactMessage.value.trim()};const status=document.getElementById("contactStatus");status.textContent="Sending...";const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({}));status.textContent=r.ok?(data.message||'Message sent successfully.'):(data.error||'Unable to send message.');if(r.ok)e.target.reset();});
+
 </script>
 </body>
 </html>
