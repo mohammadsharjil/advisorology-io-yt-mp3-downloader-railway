@@ -240,10 +240,13 @@ def contact():
         f"{message}"
     )
 
-    with smtplib.SMTP(host, port) as s:
-        s.starttls()
-        s.login(user, pwd)
-        s.send_message(msg)
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            s.starttls()
+            s.login(user, pwd)
+            s.send_message(msg)
+    except Exception as exc:
+        return jsonify({"error": f"Contact form could not send email: {str(exc)}"}), 500
 
     return jsonify({"message": "Thanks — your message has been sent."})
 
