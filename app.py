@@ -222,13 +222,13 @@ def contact():
     if not email or not message:
         return jsonify({"error": "Email and message are required."}), 400
 
-    host = os.getenv("SMTP_HOST")
-    user = os.getenv("SMTP_USER")
-    pwd = os.getenv("SMTP_PASS")
-    port = int(os.getenv("SMTP_PORT", "587"))
+    host = SMTP_HOST or os.getenv("SMTP_HOST")
+    user = SMTP_USERNAME or os.getenv("SMTP_USER") or os.getenv("SMTP_USERNAME")
+    pwd = SMTP_PASSWORD or os.getenv("SMTP_PASS") or os.getenv("SMTP_PASSWORD")
+    port = SMTP_PORT
 
     if not all([host, user, pwd]):
-        return jsonify({"error": "Contact form is not configured yet."}), 500
+        return jsonify({"error": "Contact form is not configured yet. Please add SMTP_HOST, SMTP_PORT, SMTP_USERNAME, and SMTP_PASSWORD in Railway."}), 500
 
     msg = EmailMessage()
     msg["Subject"] = f"Advisorology contact: {subject}"
@@ -242,7 +242,10 @@ def contact():
 
     try:
         with smtplib.SMTP(host, port, timeout=20) as s:
-            s.starttls()
+            s.ehlo()
+            if port in (587, 2525):
+                s.starttls()
+                s.ehlo()
             s.login(user, pwd)
             s.send_message(msg)
     except Exception as exc:

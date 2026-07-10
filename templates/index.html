@@ -870,7 +870,68 @@ body.light{--bg:#f6f8fc;--surface:#ffffff;--surface2:#f3f5fb;--surface3:#e8ecf7;
 
 <!-- ══════════════════════════ FOOTER ════════════════════════════════════════ -->
 
-<section class="sect" id="contact"><div class="wrap"><div class="faq-head"><p class="sect-label">Support</p><h2 class="sect-h2">Need help or want to report an issue?</h2><p class="sect-sub">Send a message and we'll review your conversion issue, feature request, or business inquiry.</p></div><div class="conv-card" style="max-width:760px;margin:0 auto"><form id="contactForm" class="contact-form"><div class="conv-input-row" style="grid-template-columns:1fr 1fr"><input id="contactName" class="cv-input" placeholder="Your name (optional)"/><input id="contactEmail" class="cv-input" placeholder="Your email"/></div><div class="conv-input-row"><input id="contactSubject" class="cv-input" placeholder="Subject"/></div><div class="conv-input-row"><textarea id="contactMessage" class="cv-input" rows="5" placeholder="How can we help?"></textarea></div><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><p class="micro-note">Messages are sent to mohammads744@gmail.com.</p><button class="cta-btn" type="submit">Send message</button></div><p id="contactStatus" class="micro-note" style="margin-top:12px"></p></form></div></div></section>
+<section class="sect" id="contact" aria-labelledby="contact-heading">
+  <div class="wrap">
+    <div class="hiw-head reveal" style="margin-bottom:40px">
+      <p class="sect-label">Support</p>
+      <h2 class="sect-h2" id="contact-heading">Need help or want to report an issue?</h2>
+      <p class="sect-sub" style="margin:0 auto">Send a message and we’ll review your conversion issue, feature request, or business inquiry.</p>
+    </div>
+
+    <div class="contact-wrap reveal">
+      <div class="contact-card">
+        <aside class="contact-side" aria-label="Contact details">
+          <p class="contact-kicker">Contact support</p>
+          <h3 class="contact-title">We usually reply within one business day.</h3>
+          <p class="contact-copy">Use the form to report a broken download, request a feature, or ask a business question. Include the video URL and what happened if you are reporting an error.</p>
+
+          <div class="contact-points">
+            <div class="contact-point">
+              <div class="trust-icon" aria-hidden="true">✉️</div>
+              <div><div class="trust-title">Direct inbox</div><div class="trust-desc">Messages are delivered to mohammads744@gmail.com.</div></div>
+            </div>
+            <div class="contact-point">
+              <div class="trust-icon" aria-hidden="true">🛠️</div>
+              <div><div class="trust-title">Helpful for support</div><div class="trust-desc">Share the YouTube link, the error you saw, and the device or browser you used.</div></div>
+            </div>
+            <div class="contact-point">
+              <div class="trust-icon" aria-hidden="true">🔒</div>
+              <div><div class="trust-title">Simple and private</div><div class="trust-desc">We only use your details to reply to your request and troubleshoot the issue.</div></div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="contact-form-wrap">
+          <form id="contactForm" novalidate>
+            <div class="contact-grid">
+              <div class="field">
+                <label for="contactName">Name</label>
+                <input id="contactName" type="text" placeholder="Your name">
+              </div>
+              <div class="field">
+                <label for="contactEmail">Email address</label>
+                <input id="contactEmail" type="email" placeholder="you@example.com" required>
+              </div>
+            </div>
+            <div class="field" style="margin-top:14px">
+              <label for="contactSubject">Subject</label>
+              <input id="contactSubject" type="text" placeholder="What do you need help with?">
+            </div>
+            <div class="field" style="margin-top:14px">
+              <label for="contactMessage">Message</label>
+              <textarea id="contactMessage" placeholder="Tell us what happened, the video link involved, and any error message you saw." required></textarea>
+            </div>
+            <div class="contact-meta" style="margin-top:18px">
+              <p class="contact-note">By sending this form, you’re asking Advisorology.IO support to contact you back about this request.</p>
+              <button id="contactSubmit" class="cta-btn" type="submit">Send message</button>
+            </div>
+            <div id="contactStatus" class="contact-status" aria-live="polite" style="margin-top:14px"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <footer class="footer" aria-label="Site footer">
   <div class="wrap footer-inner">
