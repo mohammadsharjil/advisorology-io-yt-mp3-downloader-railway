@@ -233,7 +233,8 @@ def contact():
     msg = EmailMessage()
     msg["Subject"] = f"Advisorology contact: {subject}"
     msg["From"] = user
-    msg["To"] = "mohammads744@gmail.com"
+    msg["To"] = CONTACT_TO_EMAIL
+    msg["Reply-To"] = email
     msg.set_content(
         f"Name: {name}\n"
         f"Email: {email}\n\n"
@@ -249,9 +250,47 @@ def contact():
             s.login(user, pwd)
             s.send_message(msg)
     except Exception as exc:
-        return jsonify({"error": f"Contact form could not send email: {str(exc)}"}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error":"Contact form could not send email.",
+            "details":str(exc),
+            "type":type(exc).__name__
+        }),500
 
     return jsonify({"message": "Thanks — your message has been sent."})
+
+
+
+@app.route("/health")
+def health():
+    return jsonify({
+        "status":"ok",
+        "smtp_configured": all([SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD]),
+        "contact_to": CONTACT_TO_EMAIL
+    })
+
+@app.route("/smtp-test")
+def smtp_test():
+    import socket,smtplib
+    host=SMTP_HOST
+    port=SMTP_PORT
+    result={"host":host,"port":port}
+    try:
+        result["dns"]=socket.gethostbyname(host)
+        socket.create_connection((host,port),timeout=5)
+        result["tcp"]="OK"
+        with smtplib.SMTP(host,port,timeout=10) as s:
+            s.ehlo()
+            if port in (587,2525):
+                s.starttls()
+                s.ehlo()
+            s.login(SMTP_USERNAME,SMTP_PASSWORD)
+        result["login"]="OK"
+    except Exception as e:
+        result["error"]=str(e)
+        result["type"]=type(e).__name__
+    return jsonify(result)
 
 
 if __name__ == "__main__":
