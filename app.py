@@ -16,7 +16,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 CONTACT_TO_EMAIL = os.getenv("CONTACT_TO_EMAIL", "mohammads744@gmail.com")
-CONTACT_FROM_EMAIL = os.getenv("CONTACT_FROM_EMAIL", SMTP_USERNAME or CONTACT_TO_EMAIL)
+CONTACT_FROM_EMAIL = os.getenv("CONTACT_FROM_EMAIL", CONTACT_TO_EMAIL)
 
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
@@ -211,6 +211,25 @@ def bulk_export():
     return response
 
 
+def _smtp_connect_and_login(host, port, user, pwd, timeout=20):
+    """
+    Port 465 is implicit TLS — the connection must be SSL-wrapped from the very
+    first byte (smtplib.SMTP_SSL). Port 587/2525 are plaintext-then-upgrade
+    (STARTTLS). Using plain smtplib.SMTP on port 465, like the old code did,
+    just times out because the server is waiting for a TLS handshake that
+    never comes.
+    """
+    if port == 465:
+        s = smtplib.SMTP_SSL(host, port, timeout=timeout)
+    else:
+        s = smtplib.SMTP(host, port, timeout=timeout)
+        s.ehlo()
+        s.starttls()
+        s.ehlo()
+    s.login(user, pwd)
+    return s
+
+
 @app.route("/api/contact", methods=["POST"])
 def contact():
     data = request.json or {}
@@ -232,7 +251,7 @@ def contact():
 
     msg = EmailMessage()
     msg["Subject"] = f"Advisorology contact: {subject}"
-    msg["From"] = user
+    msg["From"] = CONTACT_FROM_EMAIL
     msg["To"] = CONTACT_TO_EMAIL
     msg["Reply-To"] = email
     msg.set_content(
@@ -242,12 +261,7 @@ def contact():
     )
 
     try:
-        with smtplib.SMTP(host, port, timeout=20) as s:
-            s.ehlo()
-            if port in (587, 2525):
-                s.starttls()
-                s.ehlo()
-            s.login(user, pwd)
+        with _smtp_connect_and_login(host, port, user, pwd) as s:
             s.send_message(msg)
     except Exception as exc:
         import traceback
@@ -267,7 +281,8 @@ def health():
     return jsonify({
         "status":"ok",
         "smtp_configured": all([SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD]),
-        "contact_to": CONTACT_TO_EMAIL
+        "contact_to": CONTACT_TO_EMAIL,
+        "contact_from": CONTACT_FROM_EMAIL
     })
 
 @app.route("/smtp-test")
@@ -280,12 +295,8 @@ def smtp_test():
         result["dns"]=socket.gethostbyname(host)
         socket.create_connection((host,port),timeout=5)
         result["tcp"]="OK"
-        with smtplib.SMTP(host,port,timeout=10) as s:
-            s.ehlo()
-            if port in (587,2525):
-                s.starttls()
-                s.ehlo()
-            s.login(SMTP_USERNAME,SMTP_PASSWORD)
+        with _smtp_connect_and_login(host, port, SMTP_USERNAME, SMTP_PASSWORD, timeout=10) as s:
+            pass
         result["login"]="OK"
     except Exception as e:
         result["error"]=str(e)
