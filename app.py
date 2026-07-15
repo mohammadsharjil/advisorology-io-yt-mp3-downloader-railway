@@ -4,6 +4,7 @@ import zipfile
 import tarfile
 import threading
 import smtplib
+from contextlib import contextmanager
 from email.message import EmailMessage
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, render_template
@@ -16,10 +17,31 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 CONTACT_TO_EMAIL = os.getenv("CONTACT_TO_EMAIL", "mohammads744@gmail.com")
+# NOTE: this must be a sender address you've verified in Brevo (Senders, Domains &
+# Dedicated IPs > Senders). SMTP_USERNAME is only a relay-auth login (an
+# @smtp-brevo.com address) — Brevo will reject or silently rewrite mail sent
+# "from" that address, so it's deliberately not used as a fallback here.
 CONTACT_FROM_EMAIL = os.getenv("CONTACT_FROM_EMAIL", CONTACT_TO_EMAIL)
 
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+# ── yt-dlp cookies (optional) ─────────────────────────────────────────────────
+# If YTDLP_COOKIES_CONTENT is set (as a Railway env var — never committed to
+# git), write it out to YTDLP_COOKIE_FILE once at startup so yt-dlp can send it
+# with each request. The cookie values themselves never touch this file in the
+# repo; they only ever live in Railway's env vars.
+YTDLP_COOKIE_FILE = os.getenv("YTDLP_COOKIE_FILE", "/app/cookies.txt")
+_cookies_content = os.getenv("YTDLP_COOKIES_CONTENT", "").strip()
+if _cookies_content:
+    try:
+        with open(YTDLP_COOKIE_FILE, "w") as f:
+            f.write(_cookies_content + "\n")
+    except OSError as e:
+        print(f"⚠️  Could not write yt-dlp cookie file: {e}")
+        YTDLP_COOKIE_FILE = None
+else:
+    YTDLP_COOKIE_FILE = None
 
 # In-memory job store: { job_id: { url, status, filename, error, title } }
 jobs = {}
@@ -29,6 +51,30 @@ jobs_lock = threading.Lock()
 def _safe_title(title):
     """Sanitise a track title for use as a filename."""
     return ("".join(c for c in title if c.isalnum() or c in " _-").strip()) or "audio"
+
+
+@contextmanager
+def smtp_connection(host, port):
+    """
+    Yield a connected (but not yet logged-in) SMTP client, using the right
+    transport for the port:
+      - 465  -> implicit SSL/TLS from the first byte (smtplib.SMTP_SSL)
+      - 587 / 2525 -> plaintext connection upgraded via STARTTLS
+      - anything else -> plaintext, no upgrade
+    Using plain smtplib.SMTP on port 465 (the old code's behaviour) doesn't
+    raise a clean error — it just hangs until the connection times out, which
+    is exactly the failure mode Brevo on port 465 was hitting.
+    """
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port, timeout=20) as s:
+            yield s
+    else:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            s.ehlo()
+            if port in (587, 2525):
+                s.starttls()
+                s.ehlo()
+            yield s
 
 
 def do_download(job_id, url):
@@ -50,6 +96,8 @@ def do_download(job_id, url):
         "quiet": True,
         "no_warnings": True,
     }
+    if YTDLP_COOKIE_FILE and os.path.exists(YTDLP_COOKIE_FILE):
+        ydl_opts["cookiefile"] = YTDLP_COOKIE_FILE
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -211,25 +259,6 @@ def bulk_export():
     return response
 
 
-def _smtp_connect_and_login(host, port, user, pwd, timeout=20):
-    """
-    Port 465 is implicit TLS — the connection must be SSL-wrapped from the very
-    first byte (smtplib.SMTP_SSL). Port 587/2525 are plaintext-then-upgrade
-    (STARTTLS). Using plain smtplib.SMTP on port 465, like the old code did,
-    just times out because the server is waiting for a TLS handshake that
-    never comes.
-    """
-    if port == 465:
-        s = smtplib.SMTP_SSL(host, port, timeout=timeout)
-    else:
-        s = smtplib.SMTP(host, port, timeout=timeout)
-        s.ehlo()
-        s.starttls()
-        s.ehlo()
-    s.login(user, pwd)
-    return s
-
-
 @app.route("/api/contact", methods=["POST"])
 def contact():
     data = request.json or {}
@@ -261,7 +290,8 @@ def contact():
     )
 
     try:
-        with _smtp_connect_and_login(host, port, user, pwd) as s:
+        with smtp_connection(host, port) as s:
+            s.login(user, pwd)
             s.send_message(msg)
     except Exception as exc:
         import traceback
@@ -281,13 +311,12 @@ def health():
     return jsonify({
         "status":"ok",
         "smtp_configured": all([SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD]),
-        "contact_to": CONTACT_TO_EMAIL,
-        "contact_from": CONTACT_FROM_EMAIL
+        "contact_to": CONTACT_TO_EMAIL
     })
 
 @app.route("/smtp-test")
 def smtp_test():
-    import socket,smtplib
+    import socket
     host=SMTP_HOST
     port=SMTP_PORT
     result={"host":host,"port":port}
@@ -295,8 +324,8 @@ def smtp_test():
         result["dns"]=socket.gethostbyname(host)
         socket.create_connection((host,port),timeout=5)
         result["tcp"]="OK"
-        with _smtp_connect_and_login(host, port, SMTP_USERNAME, SMTP_PASSWORD, timeout=10) as s:
-            pass
+        with smtp_connection(host, port) as s:
+            s.login(SMTP_USERNAME,SMTP_PASSWORD)
         result["login"]="OK"
     except Exception as e:
         result["error"]=str(e)
